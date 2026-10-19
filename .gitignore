@@ -1,0 +1,18 @@
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local test downloads / temp
+*.zip
+*.exe
+*.log
+tmp/
+
+# Accidentally dropped Scoop dirs
+/apps/
+/shims/
+/persist/
+/cache/

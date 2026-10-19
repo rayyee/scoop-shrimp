@@ -1,0 +1,21 @@
+{
+    "version": "0.8.0-rc8",
+    "description": "Hermes Agent 中文社区桌面版 便携版，解压即用",
+    "homepage": "https://github.com/Eynzof/Hermes-CN-Desktop",
+    "license": "Proprietary",
+    "url": "https://github.com/Eynzof/Hermes-CN-Desktop/releases/download/v$version/Hermes.Agent.CN.Desktop_${version}_x64_portable.zip",
+    "hash": "",
+    "extract_dir": "",
+    "shortcuts": [
+        [
+            "Hermes Agent CN Desktop.exe",
+            "Hermes Agent CN Desktop"
+        ]
+    ],
+    "checkver": {
+        "github": "https://github.com/Eynzof/Hermes-CN-Desktop"
+    },
+    "autoupdate": {
+        "url": "https://github.com/Eynzof/Hermes-CN-Desktop/releases/download/v$version/Hermes.Agent.CN.Desktop_${version}_x64_portable.zip"
+    }
+}
