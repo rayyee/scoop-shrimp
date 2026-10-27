@@ -1,0 +1,96 @@
+{
+    "##": "WorkBuddy 国内版（codebuddy.cn）。与官方 extras 桶的 workbuddy（workbuddy.ai 国际版）是两套独立产品：主程序名、userData 目录、更新接口均不同，故此处命名为 workbuddy-cn。",
+    "version": "5.9.2.42136757",
+    "description": "腾讯 WorkBuddy 国内版，AI Agent 办公工具，可自主规划并交付多模态复杂任务结果。",
+    "homepage": "https://www.codebuddy.cn/work/",
+    "license": "Proprietary",
+    "architecture": {
+        "64bit": {
+            "url": "https://download.codebuddy.cn/workbuddy/saas/win32-x64-user/WorkBuddy-win32-x64-user-5.9.2.42136757-0b5051be.exe#/dl.7z",
+            "hash": "1a94726ecc9c5e065a18cb50cab4305c7d9629d154446cb7fa643cf09b7f7022",
+            "pre_install": [
+                "# NSIS 外壳里只有 $PLUGINSDIR/app-64.7z 是真正的应用，先把它解到 $dir",
+                "$archive = Get-ChildItem \"$dir\\`$PLUGINSDIR\\app*.7z\" -ErrorAction SilentlyContinue | Select-Object -First 1",
+                "if (!$archive) { abort 'app-*.7z not found in the installer payload' }",
+                "Expand-7zipArchive -Path $archive.FullName -DestinationPath $dir",
+                "# 清掉 NSIS 的临时目录（$PLUGINSDIR、$R0 等）以及可能存在的卸载器",
+                "Remove-Item -Path \"$dir\\`$*\", \"$dir\\Uninst*\" -Force -Recurse -ErrorAction Ignore"
+            ]
+        }
+    },
+    "shortcuts": [
+        [
+            "WorkBuddy.exe",
+            "WorkBuddy"
+        ]
+    ],
+    "post_install": [
+        "# 应用把数据写在 %APPDATA%\\WorkBuddy 和 %USERPROFILE%\\.workbuddy，这里把它们接到 persist 目录，升级/重装不丢数据",
+        "function Get-LinkItem($p) { Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }",
+        "$pairs = @(",
+        "    @{ Link = \"$env:AppData\\WorkBuddy\"; Target = \"$persist_dir\\WorkBuddy\" },",
+        "    @{ Link = \"$env:USERPROFILE\\.workbuddy\"; Target = \"$persist_dir\\.workbuddy\" }",
+        ")",
+        "foreach ($p in $pairs) {",
+        "    $link = $p.Link",
+        "    $target = $p.Target",
+        "    New-Item -ItemType Directory -Path $target -Force | Out-Null",
+        "    $item = Get-LinkItem $link",
+        "    # 已经是链接（重装/升级）就不动它",
+        "    if ($item -and $item.LinkType) { continue }",
+        "    if ($item) {",
+        "        if (Get-ChildItem -LiteralPath $target -Force -ErrorAction SilentlyContinue) {",
+        "            # persist 里已有数据：把旧目录改名备份，两边都不丢",
+        "            $backup = \"$link.original\"",
+        "            if (Test-Path -LiteralPath $backup) { $backup = \"$link.original.\" + (Get-Date -Format 'yyyyMMddHHmmss') }",
+        "            Move-Item -LiteralPath $link -Destination $backup -Force",
+        "            Write-Host \"Existing data kept at $backup\" -ForegroundColor DarkYellow",
+        "        } else {",
+        "            # persist 还是空的：把旧数据整体搬进 persist",
+        "            Remove-Item -LiteralPath $target -Force -Recurse -ErrorAction SilentlyContinue",
+        "            Move-Item -LiteralPath $link -Destination $target -Force",
+        "        }",
+        "    }",
+        "    New-Item -ItemType Junction -Path $link -Value $target | Out-Null",
+        "}"
+    ],
+    "post_uninstall": [
+        "# 只摘掉指向 persist 的链接：persist 里的数据保留，重新安装会自动接回",
+        "function Remove-LinkOnly($p) {",
+        "    $i = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue",
+        "    if (!$i -or !$i.LinkType) { return }",
+        "    try {",
+        "        if ($i.PSIsContainer) { [System.IO.Directory]::Delete($p, $false) } else { [System.IO.File]::Delete($p) }",
+        "    } catch {",
+        "        warn \"Couldn't remove link $p, close the app and delete it manually.\"",
+        "    }",
+        "}",
+        "Remove-LinkOnly \"$env:AppData\\WorkBuddy\"",
+        "Remove-LinkOnly \"$env:USERPROFILE\\.workbuddy\""
+    ],
+    "checkver": {
+        "script": [
+            "# 官方更新接口同时给出 version / url / sha256hash，是唯一权威来源",
+            "$api = 'https://www.codebuddy.cn/v2/update?platform=workbuddy-win32-x64-user'",
+            "$r = Invoke-RestMethod -Uri $api -UseBasicParsing",
+            "# 接口在灰度发布或回滚期间可能低于清单版本，仅在更高时才提示更新，避免自动降级",
+            "if ([version]$r.productVersion -gt [version]$expected_ver) {",
+            "    \"$($r.productVersion)|$($r.url)|$($r.sha256hash)\"",
+            "} else {",
+            "    \"$expected_ver||\"",
+            "}"
+        ],
+        "regex": "^(?<version>[^|]+)\\|(?<url>[^|]*)\\|(?<hash>[a-fA-F0-9]*)$"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "$matchUrl#/dl.7z",
+                "hash": {
+                    "url": "https://www.codebuddy.cn/v2/update?platform=workbuddy-win32-x64-user",
+                    "jsonpath": "$.sha256hash"
+                }
+            }
+        }
+    }
+}
