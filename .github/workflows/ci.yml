@@ -1,0 +1,62 @@
+name: CI
+
+# 清单坏了就别让它进 main —— Excavator 是直接推提交的，这层是唯一的刹车。
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    name: Validate manifests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate bucket/*.json
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifests = @(Get-ChildItem -Path 'bucket' -Filter '*.json' -File)
+          if ($manifests.Count -eq 0) { throw 'no manifest found in bucket/' }
+
+          $bad = 0
+          foreach ($f in $manifests) {
+              $err = @()
+              $m = $null
+              # 显式 UTF8：清单里全是中文，别指望平台默认编码
+              $raw = Get-Content -LiteralPath $f.FullName -Raw -Encoding UTF8
+              try {
+                  $m = $raw | ConvertFrom-Json
+              } catch {
+                  $err += 'invalid JSON: ' + $_.Exception.Message
+              }
+              if ($m) {
+                  foreach ($key in 'version', 'description', 'homepage', 'license') {
+                      if (-not $m.$key) { $err += "missing required key: $key" }
+                  }
+                  if (-not $m.url -and -not $m.architecture) { $err += 'missing required key: url (or architecture)' }
+                  if ($m.url -and -not $m.hash) { $err += 'empty hash' }
+                  if ($m.architecture) {
+                      foreach ($a in @($m.architecture.PSObject.Properties)) {
+                          if (-not $a.Value.url) { $err += "architecture.$($a.Name): missing url" }
+                          elseif (-not $a.Value.hash) { $err += "architecture.$($a.Name): empty hash" }
+                      }
+                  }
+                  # 没有 checkver 清单就不会自己更新；没有 autoupdate 就得人肉改 url/hash
+                  if (-not $m.checkver) { $err += 'missing required key: checkver' }
+                  if (-not $m.autoupdate) { $err += 'missing required key: autoupdate' }
+              }
+              if ($err) {
+                  $bad++
+                  foreach ($e in $err) { Write-Host "::error file=bucket/$($f.Name)::$e" }
+              } else {
+                  Write-Host "OK bucket/$($f.Name) $($m.version)"
+              }
+          }
+          if ($bad) { throw "$bad of $($manifests.Count) manifest(s) failed validation" }

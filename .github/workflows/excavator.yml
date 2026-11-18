@@ -1,0 +1,32 @@
+name: Excavator
+
+# 定时跑 checkver + autoupdate：把 bucket/ 下**所有**清单的 version / url / hash
+# 对齐上游，有变化就直接提交到 main（Excavator 一次处理整个 bucket 目录，
+# 新加清单不用改这个文件）。
+on:
+  workflow_dispatch:
+  schedule:
+    # UTC。每 4 小时一次；GitHub 的 cron 在高峰期可能排队十几分钟，属正常。
+    - cron: '20 */4 * * *'
+
+permissions:
+  # 需要往 main 推提交
+  contents: write
+
+# 上一次还没跑完就不要叠新的，避免两个 runner 同时改清单
+concurrency:
+  group: excavator
+  cancel-in-progress: false
+
+jobs:
+  excavate:
+    name: Excavate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Excavate
+        uses: ScoopInstaller/GithubActions@5bceeda181721d9d10a18fdcc3ddca6f33467ae6 # v3.0.0
+        env:
+          # 版本没变的清单不提交、不刷日志
+          SKIP_UPDATED: 1
