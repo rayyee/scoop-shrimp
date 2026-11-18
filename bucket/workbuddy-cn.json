@@ -1,13 +1,13 @@
 {
     "##": "WorkBuddy 国内版（codebuddy.cn）。与官方 extras 桶的 workbuddy（workbuddy.ai 国际版）是两套独立产品：主程序名、userData 目录、更新接口均不同，故此处命名为 workbuddy-cn。",
-    "version": "5.9.2.42136757",
+    "version": "5.11.3.43806934",
     "description": "腾讯 WorkBuddy 国内版，AI Agent 办公工具，可自主规划并交付多模态复杂任务结果。",
     "homepage": "https://www.codebuddy.cn/work/",
     "license": "Proprietary",
     "architecture": {
         "64bit": {
-            "url": "https://download.codebuddy.cn/workbuddy/saas/win32-x64-user/WorkBuddy-win32-x64-user-5.9.2.42136757-0b5051be.exe#/dl.7z",
-            "hash": "1a94726ecc9c5e065a18cb50cab4305c7d9629d154446cb7fa643cf09b7f7022",
+            "url": "https://download.codebuddy.cn/workbuddy/saas/win32-x64-user/WorkBuddy-win32-x64-user-5.11.3.43806934-ecace0f7.exe#/dl.7z",
+            "hash": "2fd40059eea2f9a2d641c675a66f2476d71b49d9eb32f19db8c318768133b56b",
             "pre_install": [
                 "# NSIS 外壳里只有 $PLUGINSDIR/app-64.7z 是真正的应用，先把它解到 $dir",
                 "$archive = Get-ChildItem \"$dir\\`$PLUGINSDIR\\app*.7z\" -ErrorAction SilentlyContinue | Select-Object -First 1",
