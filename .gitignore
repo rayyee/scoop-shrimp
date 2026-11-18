@@ -18,3 +18,7 @@ tmp/
 /cache/
 
 /.workbuddy-ai/
+
+# Agent tooling (agent.sh 生成的发现入口与规则目录)
+/.agents/
+/AGENTS.md
