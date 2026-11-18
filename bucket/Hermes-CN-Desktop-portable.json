@@ -4,7 +4,7 @@
     "homepage": "https://github.com/Eynzof/Hermes-CN-Desktop",
     "license": "Proprietary",
     "url": "https://github.com/Eynzof/Hermes-CN-Desktop/releases/download/v0.9.0/Hermes.Agent.CN.Desktop_0.9.0_x64-windows-portable.zip",
-    "hash": "",
+    "hash": "0428ea1660af8066524a81537995789acbeb19fc07d62bfa307004d0591b980b",
     "shortcuts": [
         ["Hermes Agent CN Desktop Portable\\Hermes Agent CN Desktop.exe", "Hermes Agent CN Desktop"]
     ],
