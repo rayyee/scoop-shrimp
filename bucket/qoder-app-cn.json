@@ -1,0 +1,92 @@
+{
+    "##": "Qoder 桌面版（qoder-cn）。注意与 Qoder IDE（qoder-ide / QoderCNIDESetup）和 QoderWork 是三套不同产品：本清单对应 product.json 里 productId=qoder-cn、appId=com.qodercn.app、主程序 `Qoder CN.exe`。",
+    "version": "0.5.17",
+    "description": "Qoder 桌面版（国内版），面向人机协作的 Agent 工作台。",
+    "homepage": "https://qoder.cn/",
+    "license": "Proprietary",
+    "architecture": {
+        "64bit": {
+            "url": "https://static.qoder.com.cn/qoder-app/releases/0.5.17/Qoder-CN-win-x64-user.exe#/dl.7z",
+            "hash": "ba4c40d53a27f5c1fc6c93559096cb7149b5a1847588c36b6ccd73396894d837",
+            "pre_install": [
+                "# NSIS 外壳里只有 $PLUGINSDIR/app-64.7z 是真正的 Electron 应用，先把它解到 $dir",
+                "$archive = Get-ChildItem \"$dir\\`$PLUGINSDIR\\app*.7z\" -ErrorAction SilentlyContinue | Select-Object -First 1",
+                "if (!$archive) { abort 'app-*.7z not found in the installer payload' }",
+                "Expand-7zipArchive -Path $archive.FullName -DestinationPath $dir",
+                "# 清掉 NSIS 的临时目录（$PLUGINSDIR、$R8 等）和残留的卸载器/图标",
+                "Remove-Item -Path \"$dir\\`$*\", \"$dir\\Uninst*\", \"$dir\\uninstallerIcon.ico\" -Force -Recurse -ErrorAction Ignore",
+                "# 官方包标记 installType=user 会开启应用内自动更新（自己往 %LOCALAPPDATA% 里换文件，和 Scoop 抢），改成 portable 让应用不自更新，版本交给 Scoop",
+                "[System.IO.File]::WriteAllText(\"$dir\\resources\\install-type.json\", '{\"installType\":\"portable\"}')"
+            ]
+        }
+    },
+    "shortcuts": [
+        [
+            "Qoder CN.exe",
+            "Qoder CN"
+        ]
+    ],
+    "post_install": [
+        "# 应用把登录态/会话/设置写在 %APPDATA%\\com.qodercn.app.stable（product.json 的 dataDirectoryName），接到 persist 后升级/重装不丢数据",
+        "# 注意 ~\\.qoder-cn 是与 Qoder IDE 共用的 CLI 目录，不在这里接管",
+        "function Get-LinkItem($p) { Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }",
+        "$link = \"$env:AppData\\com.qodercn.app.stable\"",
+        "$target = \"$persist_dir\\com.qodercn.app.stable\"",
+        "New-Item -ItemType Directory -Path $target -Force | Out-Null",
+        "$item = Get-LinkItem $link",
+        "# 已经是链接（重装/升级）就不动它",
+        "if (!($item -and $item.LinkType)) {",
+        "    if ($item) {",
+        "        if (Get-ChildItem -LiteralPath $target -Force -ErrorAction SilentlyContinue) {",
+        "            # persist 里已有数据：把旧目录改名备份，两边都不丢",
+        "            $backup = \"$link.original\"",
+        "            if (Test-Path -LiteralPath $backup) { $backup = \"$link.original.\" + (Get-Date -Format 'yyyyMMddHHmmss') }",
+        "            Move-Item -LiteralPath $link -Destination $backup -Force",
+        "            Write-Host \"Existing data kept at $backup\" -ForegroundColor DarkYellow",
+        "        } else {",
+        "            # persist 还是空的：把旧数据搬进 persist（合并，不是整目录改名，避免残留半边）",
+        "            robocopy \"$link\" \"$target\" /E /MOVE /NFL /NDL /NJH /NJS /R:1 /W:1 | Out-Null",
+        "            # robocopy 0-7 都算成功；8 以上是失败，别在残缺数据上建链接",
+        "            if ($LASTEXITCODE -ge 8) {",
+        "                warn \"robocopy failed ($LASTEXITCODE) moving $link into $target; data left as is.\"",
+        "                return",
+        "            }",
+        "            # 应用正在运行时文件被锁，robocopy 会留下残局：这时不建链接，两边数据都留着，重装前先关掉应用",
+        "            if (Test-Path -LiteralPath $link) {",
+        "                warn \"Couldn't fully move $link into $target (app still running?). Close the app and reinstall to finish the move.\"",
+        "                return",
+        "            }",
+        "        }",
+        "    }",
+        "    New-Item -ItemType Junction -Path $link -Value $target | Out-Null",
+        "}"
+    ],
+    "post_uninstall": [
+        "# 只摘掉指向 persist 的链接：persist 里的数据保留，重新安装会自动接回",
+        "function Remove-LinkOnly($p) {",
+        "    $i = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue",
+        "    if (!$i -or !$i.LinkType) { return }",
+        "    try {",
+        "        if ($i.PSIsContainer) { [System.IO.Directory]::Delete($p, $false) } else { [System.IO.File]::Delete($p) }",
+        "    } catch {",
+        "        warn \"Couldn't remove link $p, close the app and delete it manually.\"",
+        "    }",
+        "}",
+        "Remove-LinkOnly \"$env:AppData\\com.qodercn.app.stable\""
+    ],
+    "checkver": {
+        "url": "https://static.qoder.com.cn/qoder-app/releases/latest.yml",
+        "regex": "version:\\s*([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://static.qoder.com.cn/qoder-app/releases/$version/Qoder-CN-win-x64-user.exe#/dl.7z",
+                "hash": {
+                    "url": "https://static.qoder.com.cn/qoder-app/releases/$version/latest.yml",
+                    "regex": "(?s)files:.*?sha256:\\s*([a-f0-9]{64})"
+                }
+            }
+        }
+    }
+}

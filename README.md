@@ -14,6 +14,7 @@ scoop bucket add shrimp https://github.com/rayyee/scoop-shrimp
 |-----|-------------|
 | `Hermes-CN-Desktop-portable` | Hermes Agent 中文社区桌面版便携版 |
 | `workbuddy-cn` | 腾讯 WorkBuddy 国内版（codebuddy.cn） |
+| `qoder-app-cn` | Qoder 桌面版国内版（qoder.cn，`Qoder CN.exe`） |
 
 ## 自动更新（GitHub Actions）
 
@@ -110,3 +111,53 @@ scoop uninstall workbuddy-cn
 ```
 
 只删除应用目录、快捷方式和两个数据 junction；`persist` 数据保留（见上）。
+
+## qoder-app-cn
+
+Qoder **桌面版**国内版（Agent 工作台），来自 `qoder.cn`，主程序 `Qoder CN.exe`。
+
+`~/.qoder-cn` 是共用的 CLI 配置目录（`qoderclicn`、`qoder-cn-computer-use` 等），
+本清单**不接管**它。
+
+```powershell
+scoop install shrimp/qoder-app-cn
+```
+
+安装后开始菜单会出现 “Qoder CN” 快捷方式。
+
+### 安装方式
+
+官方只提供 NSIS 安装包。清单把它当 7z 解（`#/dl.7z`），再由 `pre_install` 从 `$PLUGINSDIR\app-64.7z` 里取出真正的 Electron 应用，所以不需要管理员权限，也不写注册表卸载项。
+
+`pre_install` 还会把 `resources/install-type.json` 从官方默认的 `{"installType":"user"}` 改成 `{"installType":"portable"}`。这不是随便改的：官方包以 `user` 身份运行时，应用会启动自己的 `DesktopUpdateScheduler` 往 `%LOCALAPPDATA%` 里换文件、抢着自更新，和 Scoop 的版本管理直接打架；改成 `portable` 后应用内更新关闭，日志里是 `Background Desktop update checks are disabled`，版本完全交给 Scoop。
+
+### 数据目录
+
+应用把登录态、会话、设置写在 `%APPDATA%\com.qodercn.app.stable`（取自包内 `resources/product.json` 的 `dataDirectoryName`）。安装时这个目录会被换成指向 `persist\qoder-app-cn` 的 junction，于是：
+
+- 升级、卸载重装都不会丢登录态和配置；
+- 卸载只摘链接，`persist` 里的数据保留。
+
+### 更新
+
+```powershell
+scoop update
+scoop update qoder-app-cn
+```
+
+`checkver` 读官方 electron-updater 的元数据 `https://static.qoder.com.cn/qoder-app/releases/latest.yml`（`version:` 字段），`autoupdate` 用 `$version` 拼出 `.../releases/$version/Qoder-CN-win-x64-user.exe`，hash 从同目录 `latest.yml` 的 `sha256:` 取——**不会下载 265 MiB 的安装包**，CI 跑一次几秒。
+
+> `latest` 这个软链目录只放出 `latest.yml` 和 `.exe`；带版本的 `latest.yml`（`releases/<version>/latest.yml`）也存在，所以 autoupdate 按版本号取 hash 是稳的。
+
+### 卸载
+
+```powershell
+scoop uninstall qoder-app-cn
+```
+
+彻底清理：
+
+```powershell
+scoop uninstall qoder-app-cn
+Remove-Item "$env:SCOOP\persist\qoder-app-cn" -Recurse -Force
+```
