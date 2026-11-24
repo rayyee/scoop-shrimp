@@ -1,13 +1,13 @@
 {
     "##": "Qoder 桌面版（qoder-cn）。注意与 Qoder IDE（qoder-ide / QoderCNIDESetup）和 QoderWork 是三套不同产品：本清单对应 product.json 里 productId=qoder-cn、appId=com.qodercn.app、主程序 `Qoder CN.exe`。",
-    "version": "0.5.17",
+    "version": "0.5.18",
     "description": "Qoder 桌面版（国内版），面向人机协作的 Agent 工作台。",
     "homepage": "https://qoder.cn/",
     "license": "Proprietary",
     "architecture": {
         "64bit": {
-            "url": "https://static.qoder.com.cn/qoder-app/releases/0.5.17/Qoder-CN-win-x64-user.exe#/dl.7z",
-            "hash": "ba4c40d53a27f5c1fc6c93559096cb7149b5a1847588c36b6ccd73396894d837",
+            "url": "https://static.qoder.com.cn/qoder-app/releases/0.5.18/Qoder-CN-win-x64-user.exe#/dl.7z",
+            "hash": "b7401527da9647c17d223e3de760e6ecc55bc401a3db36f775b07615e6eb88f0",
             "pre_install": [
                 "# NSIS 外壳里只有 $PLUGINSDIR/app-64.7z 是真正的 Electron 应用，先把它解到 $dir",
                 "$archive = Get-ChildItem \"$dir\\`$PLUGINSDIR\\app*.7z\" -ErrorAction SilentlyContinue | Select-Object -First 1",
